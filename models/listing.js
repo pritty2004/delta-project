@@ -8,16 +8,13 @@ const listingSchema = new Schema({
         required: true,
     },
     description: String,
+    owner: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        },
     image: {
+        url: String,
         filename: String,
-        url: {
-         type: String,
-        default:
-            "https://www.istockphoto.com/photo/beautiful-sunset-or-sunrise-with-silhouette-palm-tree-on-tropical-island-gm1177664565-328862357",
-        set: (v) => v === "" 
-        ? "https://www.istockphoto.com/photo/beautiful-sunset-or-sunrise-with-silhouette-palm-tree-on-tropical-island-gm1177664565-328862357" 
-        : v,   
-        }
     },
     price: Number,
     location: String,
@@ -26,8 +23,22 @@ const listingSchema = new Schema({
         {
             type: Schema.Types.ObjectId,
             ref: "Review"
-        }
-    ]
+        },
+    ],
+   geometry: {
+    type: {
+    type: String,
+    enum: ['Point'],
+  },
+  coordinates: {
+    type: [Number],
+    required: true
+    },
+  },
+//   category: {
+//     type: String,
+//     enum: ["mountains", "arctic", "farms", "deserts"]
+//   }
 });
 
 listingSchema.post("findOneAndDelete",async (listing) => {

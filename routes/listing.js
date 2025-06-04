@@ -1,112 +1,50 @@
 const express = require("express");
 const router = express.Router();
 const wrapAsync = require("../utils/wrapAsync.js");
-const ExpressError = require("../utils/ExpressError.js");
-const { listingSchema, reviewSchema } = require("../shcema.js");
 const Listing = require("../models/listing.js");
+const { isLoggedIn, isOwner, validateListing } = require("../middleware.js");
+const listingController = require("../controllers/listings.js");
+const multer = require("multer");
+const { storage } = require("../cloudConfig.js");
+const upload = multer({ storage });
 
-
-
-//New Route
-router.get("/new", (req, res) => {
-    res.render("listings/new.ejs");
-});
-
-//validation for schema in middlewares
-const validateListing = (req, res, next) => {
-    let { error } = listingSchema.validate(req.body);
-
-    if(error) {
-        let errMsg = error.details.map((el) => el.message).join(",");
-        throw new ExpressError(400, errMsg);
-    } else {
-        next();
-    }
-};
-
-
-//Index Route
-router.get("/", wrapAsync (async (req, res) => {
-   const allListings = await Listing.find({});
-   res.render("listings/index.ejs", {allListings});
-})
-);
-
-//Show Route 
-
-router.get("/:id", wrapAsync(async (req, res) => {
-    let { id } = req.params;
-    const listing = await Listing.findById(id).populate("reviews");
-    
-    if(!listing) {
-        req.flash("error", "Listing you requested for does not exist");
-        return res.redirect("/listings");
-    }
-
-    res.render("listings/show.ejs", { listing });
-}));
-
-
-// router.get("/:id", wrapAsync (async (req, res) => {
-//     let { id } = req.params;
-//     console.log(id);
-//    const listing = await Listing.findById(id).populate("reviews");
-//    if(listing){
-//     req.flash("error", "Listing you requested for does not exist");
-//     res.redirect("/listings");
-//    }
-//    res.render("listings/show.ejs", { listing });
-//    //res.send("done");
-// })
-// );
-
-
-
-
-//Create Route
-router.post("/", 
-    validateListing, 
-    wrapAsync (async (req, res, next) => { 
-    const newListing = new Listing(req.body.listing);
-    await newListing.save();
-    req.flash("success", "New Listing Created!");
-    res.redirect("/listings");
- })
-);
-
-//Edit Route
-router.get("/:id/edit", wrapAsync (async (req, res) => {
-    let { id } = req.params;
-   const listing = await Listing.findById(id);
-   if(!listing) {
-    req.flash("error", "Listing you requested for does not exist");
-    return res.redirect("/listings");
-}
-   res.render("listings/edit.ejs", { listing });
-})
-);
-
-//Update Route 
-router.put("/:id", 
+// List all listings & create a new listing
+router
+  .route("/")
+  .get(wrapAsync(listingController.index)) // ✅ function reference, not invocation
+  .post(
+    isLoggedIn,
+    upload.single("listing[image]"),
     validateListing,
-    wrapAsync (async (req, res) => {
-    let { id } = req.params;
-    await Listing.findByIdAndUpdate(id, {...req.body.listing});
-    req.flash("success", "Listing Upadated");
-    res.redirect(`/listings/${id}`);
-})
-);
+    wrapAsync(listingController.createListing) // ✅ no parentheses
+  );
 
+// Show form to create new listing
+router.get("/new", isLoggedIn, listingController.renderNewForm);
 
-//Delete Route 
+// Show, update, or delete a specific listing
+router
+  .route("/:id")
+  .get(wrapAsync(listingController.showListing))
+  .put(
+    isLoggedIn,
+    isOwner,
+    upload.single("listing[image]"),
+    validateListing,
+    wrapAsync(listingController.updateListing)
+  )
+  .delete(
+    isLoggedIn,
+    isOwner,
+    wrapAsync(listingController.destroyListing)
+  );
 
-router.delete("/:id", wrapAsync (async (req, res) => {
-    let { id } = req.params;
-    let deleteListing = await Listing.findByIdAndDelete(id);
-    console.log(deleteListing);
-    req.flash("success", "Listing Deleted!");
-    res.redirect("/listings");
-})
+// Show edit form for a specific listing
+router.get(
+  "/:id/edit",
+  isLoggedIn,
+  isOwner,
+  wrapAsync(listingController.renderEditForm)
 );
 
 module.exports = router;
