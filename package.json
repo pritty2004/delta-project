@@ -1,12 +1,13 @@
-{
-  "engine": {
-    "node": "v22.14.0"
-  },
+ {
+ "engines": {
+  "node": "18.x"
+},
   "name": "majorproject",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+     "start": "node app.js"
   },
   "keywords": [],
   "author": "",
