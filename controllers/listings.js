@@ -14,8 +14,10 @@ module.exports.renderNewForm = (req, res) => {
 
 module.exports.showListing = async (req, res) => {
   const listing = await Listing.findById(req.params.id)
-    .populate("owner")
-    .populate("reviews");
+  .populate({path:'reviews' , 
+    populate : {path:"author"}}).populate('owner');
+    // .populate("owner")
+    // .populate("reviews");
 
   if (!listing) {
     req.flash("error", "Listing not found!");
